@@ -24,6 +24,8 @@ enum SIDE {
 # Export
 @export var example_var := 1
 
+const _private_const := 2
+
 #export range
 @export_range(-90.0, 0.0, 0.1, "range")
 var _range: float = -PI / 2

@@ -213,3 +213,5 @@ var weird_colon := 42
 enum SIDE {TOP, LEFT, BOTTOM, RIGHT, ANY} 
 @onready var _r2=1
 @onready var r1=2
+
+const _private_const := 2

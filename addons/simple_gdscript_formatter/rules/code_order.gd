@@ -10,7 +10,7 @@ static func apply(code: String) -> String:
 		"signals": [],
 		"enums": [],
 		"constants": [],
-		"pirvate_constants": [],
+		"private_constants": [],
 		"static_vars": [],
 		"private_static_vars": [],
 		"export_vars": [],
