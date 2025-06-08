@@ -215,3 +215,8 @@ enum SIDE {TOP, LEFT, BOTTOM, RIGHT, ANY}
 @onready var r1=2
 
 const _private_const := 2
+# multiline string2: first comment with a '
+var property := 1.0
+func somefun() -> void:
+	# second comment with a '
+	pass
