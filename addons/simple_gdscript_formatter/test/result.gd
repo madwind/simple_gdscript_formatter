@@ -21,12 +21,10 @@ enum SIDE {
 	ANY,
 }
 
-@onready var r1 = 2
-
-const _private_const := 2
-
 # Export
 @export var example_var := 1
+
+const _private_const := 2
 
 #export range
 @export_range(-90.0, 0.0, 0.1, "range")
@@ -39,11 +37,11 @@ text
 """
 
 var weird_colon := 42
-# multiline string2: first comment with a '
-var property := 1.0
 
 # one line
 var _my_dictionary = { key = "value" }
+
+@onready var r1 = 2
 
 @onready var _r2 = 1
 
@@ -213,11 +211,6 @@ func block():
 			and false
 	):
 		pass
-
-
-func somefun() -> void:
-	# second comment with a '
-	pass
 
 
 @warning_ignore("assert_always_false")
