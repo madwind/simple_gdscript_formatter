@@ -6,7 +6,7 @@ const BlankLines = preload("rules/blank_lines.gd")
 
 static func _apply_rules(code: String) -> String:
 	code = Spacing.apply(code)
-	print(code)
+
 	code = SyntaxStyle.apply(code)
 	code = Spacing.apply(code)
 
@@ -25,6 +25,17 @@ static func _replace(text: String, what: String, forwhat: String) -> String:
 
 
 func format_code(code: String) -> String:
+	var string_regex = RegEx.create_from_string(r"\&?([\"'])(?:(?=(\\?))\2[\s\S])*?\1")
+	var string_matches = string_regex.search_all(code)
+	var string_map = {}
+
+	for i in range(string_matches.size()):
+		var match = string_matches[i]
+		var original = match.get_string()
+		var placeholder = "__STRING__%d__" % i
+		string_map[placeholder] = original
+		code = _replace(code, original, placeholder)
+
 	var disable_comment_regex = RegEx.create_from_string(r"#[^\s].*")
 	var disable_comment_matches = disable_comment_regex.search_all(code)
 	var disable_comment_map = {}
@@ -47,17 +58,6 @@ func format_code(code: String) -> String:
 		comment_map[placeholder] = original
 		code = _replace(code, original, placeholder)
 
-	var string_regex = RegEx.create_from_string(r"\&?([\"'])(?:(?=(\\?))\2[\s\S])*?\1")
-	var string_matches = string_regex.search_all(code)
-	var string_map = {}
-
-	for i in range(string_matches.size()):
-		var match = string_matches[i]
-		var original = match.get_string()
-		var placeholder = "__STRING__%d__" % i
-		string_map[placeholder] = original
-		code = _replace(code, original, placeholder)
-		
 	var ref_regex = RegEx.create_from_string(r"\$.*?(?=[.\n]|$)")
 	var ref_matches = ref_regex.search_all(code)
 	var ref_map = {}
@@ -83,12 +83,12 @@ func format_code(code: String) -> String:
 
 	for placeholder in ref_map:
 		code = code.replace(placeholder, ref_map[placeholder])
-	for placeholder in string_map:
-		code = code.replace(placeholder, string_map[placeholder])
 	for placeholder in comment_map:
 		code = code.replace(placeholder, comment_map[placeholder])
 	for placeholder in disable_comment_map:
 		code = code.replace(placeholder, disable_comment_map[placeholder])
+	for placeholder in string_map:
+		code = code.replace(placeholder, string_map[placeholder])
 	for placeholder in breaker_map:
 		code = code.replace(placeholder, breaker_map[placeholder])
 
