@@ -6,7 +6,7 @@ const BlankLines = preload("rules/blank_lines.gd")
 
 static func _apply_rules(code: String) -> String:
 	code = Spacing.apply(code)
-	print(code)
+
 	code = SyntaxStyle.apply(code)
 	code = Spacing.apply(code)
 
@@ -57,7 +57,7 @@ func format_code(code: String) -> String:
 		var placeholder = "__STRING__%d__" % i
 		string_map[placeholder] = original
 		code = _replace(code, original, placeholder)
-		
+
 	var ref_regex = RegEx.create_from_string(r"\$.*?(?=[.\n]|$)")
 	var ref_matches = ref_regex.search_all(code)
 	var ref_map = {}
