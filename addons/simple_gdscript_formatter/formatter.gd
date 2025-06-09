@@ -104,6 +104,8 @@ func _replace(text: String, what: String, forwhat: String) -> String:
 
 
 func _extrat_text(code_edit: CodeEdit, start_line: int, start_column: int, end_line: int, end_column: int) -> String:
+	if code_edit.get_line(start_line)[start_column - 1] == "&":
+		start_column -= 1
 	if start_line == end_line:
 		return code_edit.get_line(start_line).substr(start_column, end_column - start_column)
 	var text := ""
