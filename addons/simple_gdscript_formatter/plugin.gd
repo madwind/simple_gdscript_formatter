@@ -40,22 +40,22 @@ func _exit_tree():
 func _on_format_code():
 	var current_editor := EditorInterface.get_script_editor().get_current_editor()
 	if current_editor and current_editor.is_class("ScriptTextEditor"):
-		var text_edit := current_editor.get_base_editor() as CodeEdit
-		var code = text_edit.text
+		var code_edit := current_editor.get_base_editor() as CodeEdit
+		var code = code_edit.text
 		var formatter = preload("formatter.gd").new()
-		var formatted_code = formatter.format_code(code)
+		var formatted_code = formatter.format(code_edit)
 		if formatted_code && code != formatted_code:
-			var scroll_horizontal = text_edit.scroll_horizontal
-			var scroll_vertical = text_edit.scroll_vertical
-			var caret_column = text_edit.get_caret_column(0)
-			var caret_line = text_edit.get_caret_line(0)
-			text_edit.text = formatted_code
-			text_edit.set_caret_line(caret_line)
-			text_edit.set_caret_column(caret_column)
-			text_edit.do_indent()
-			text_edit.undo()
-			text_edit.scroll_horizontal = scroll_horizontal
-			text_edit.scroll_vertical = scroll_vertical
+			var scroll_horizontal = code_edit.scroll_horizontal
+			var scroll_vertical = code_edit.scroll_vertical
+			var caret_column = code_edit.get_caret_column(0)
+			var caret_line = code_edit.get_caret_line(0)
+			code_edit.text = formatted_code
+			code_edit.set_caret_line(caret_line)
+			code_edit.set_caret_column(caret_column)
+			code_edit.do_indent()
+			code_edit.undo()
+			code_edit.scroll_horizontal = scroll_horizontal
+			code_edit.scroll_vertical = scroll_vertical
 
 
 func _open_external() -> void:
