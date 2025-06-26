@@ -3,11 +3,26 @@ extends EditorPlugin
 
 const FORMAT_ACTION = &"simple_gdscript_formatter/format"
 const OPEN_EXTERNAL_ACTION = &"simple_gdscript_formatter/open_in_external_editor"
+
+const SETTING_PATH := "formatter/simple_gdscript_formatter/auto_run_on_save"
+
 var format_key: InputEventKey
 var open_external_key: InputEventKey
 
 
 func _enter_tree():
+	if not ProjectSettings.has_setting(SETTING_PATH):
+		ProjectSettings.set_setting(SETTING_PATH, false)
+		ProjectSettings.save()
+
+	ProjectSettings.add_property_info({
+		"name": SETTING_PATH,
+		"type": TYPE_BOOL,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": ""
+		})
+	ProjectSettings.save()
+
 	add_tool_menu_item("Format GDScript", _on_format_code)
 	if InputMap.has_action(FORMAT_ACTION):
 		InputMap.erase_action(FORMAT_ACTION)
@@ -29,12 +44,17 @@ func _enter_tree():
 	open_external_key.ctrl_pressed = true
 	InputMap.action_add_event(OPEN_EXTERNAL_ACTION, open_external_key)
 
+	self.connect("scene_saved", _on_any_save)
+	self.connect("resource_saved", _on_any_save)
+
 
 func _exit_tree():
 	remove_tool_menu_item("Format GDScript")
 	InputMap.erase_action(FORMAT_ACTION)
 	remove_tool_menu_item("Open In External Editor")
 	InputMap.erase_action(OPEN_EXTERNAL_ACTION)
+	self.disconnect("scene_saved", _on_any_save)
+	self.disconnect("resource_saved", _on_any_save)
 
 
 func _on_format_code():
@@ -84,3 +104,8 @@ func _shortcut_input(event: InputEvent) -> void:
 		_on_format_code()
 	if Input.is_action_pressed(OPEN_EXTERNAL_ACTION):
 		_open_external()
+
+
+func _on_any_save(arg) -> void:
+	if ProjectSettings.get_setting(SETTING_PATH):
+		_on_format_code()
