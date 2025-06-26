@@ -44,7 +44,6 @@ func _enter_tree():
 	open_external_key.ctrl_pressed = true
 	InputMap.action_add_event(OPEN_EXTERNAL_ACTION, open_external_key)
 
-	self.connect("scene_saved", _on_any_save)
 	self.connect("resource_saved", _on_any_save)
 
 
@@ -53,7 +52,7 @@ func _exit_tree():
 	InputMap.erase_action(FORMAT_ACTION)
 	remove_tool_menu_item("Open In External Editor")
 	InputMap.erase_action(OPEN_EXTERNAL_ACTION)
-	self.disconnect("scene_saved", _on_any_save)
+
 	self.disconnect("resource_saved", _on_any_save)
 
 
