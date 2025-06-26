@@ -8,7 +8,7 @@ const SETTING_PATH: String = "formatter/simple_gdscript_formatter/auto_run_on_sa
 
 var format_key: InputEventKey
 var open_external_key: InputEventKey
-var code_edit: CodeEdit
+
 
 func _enter_tree():
 	if not ProjectSettings.has_setting(SETTING_PATH):
@@ -57,7 +57,7 @@ func _exit_tree():
 func _on_format_code():
 	var current_editor := EditorInterface.get_script_editor().get_current_editor()
 	if current_editor and current_editor.is_class("ScriptTextEditor"):
-		code_edit = current_editor.get_base_editor() as CodeEdit
+		var code_edit := current_editor.get_base_editor() as CodeEdit
 		var code = code_edit.text
 		var formatter = preload("formatter.gd").new()
 		var formatted_code = formatter.format(code_edit)
@@ -129,10 +129,6 @@ func _save_current_script() -> void:
 	editor.get_resource_filesystem().scan()
 	text_ctrl.tag_saved_version()
 	editor.edit_script(script_res)
-
-	# Perform this here to make sure it doesn't tag a file as saved auto-format isn't enabled
-	code_edit.tag_saved_version()
-
 
 
 func _on_any_save(arg) -> void:
