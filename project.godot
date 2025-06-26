@@ -18,10 +18,6 @@ boot_splash/image="uid://cn78s1t4clrbr"
 
 gdscript/warnings/untyped_declaration=2
 
-[dotnet]
-
-project/assembly_name="simple_gdscript_formatter"
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/simple_gdscript_formatter/plugin.cfg")
