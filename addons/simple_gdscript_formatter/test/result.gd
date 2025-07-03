@@ -21,10 +21,12 @@ enum SIDE {
 	ANY,
 }
 
-# Export
-@export var example_var := 1
+@onready var r1 = 2
 
 const _private_const := 2
+
+# Export
+@export var example_var := 1
 
 #export range
 @export_range(-90.0, 0.0, 0.1, "range")
@@ -41,18 +43,37 @@ var weird_colon := 42
 # one line
 var _my_dictionary = { key = "value" }
 
-@onready var r1 = 2
-
 @onready var _r2 = 1
 
 
 # Static
 static func do_static_thing() -> void:
 	pass
-
-
 func _init() -> void:
 	pass
+
+
+@abstract class AWeirdlyFormattedClass:
+	var a = 1
+
+
+	func block():
+		while(
+				true
+				and false
+		):
+			pass
+
+
+	func block2():
+		while(
+				true
+				and false
+		):
+			pass
+
+
+	@abstract func abs() -> void
 
 
 # Test ops: ** << >> == != >= <= && || += -= *= /= %= **= &= ^= |= ~= <<= >>= := -> & | ^ - + / * > < %
@@ -212,21 +233,9 @@ func block():
 	):
 		pass
 
-
 @warning_ignore("assert_always_false")
-class WeirdlyFormattedClass:
-	var a = 1
+class WeirdlyFormattedClass extends AWeirdlyFormattedClass:
 
-	func block():
-		while(
-				true
-				and false
-		):
-			pass
 
-	func block2():
-		while(
-				true
-				and false
-		):
-			pass
+	func abs() -> void:
+		pass

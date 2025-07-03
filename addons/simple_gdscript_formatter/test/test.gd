@@ -5,7 +5,8 @@ extends	Node
 
 
 @warning_ignore("assert_always_false")
-class WeirdlyFormattedClass:
+@abstract class AWeirdlyFormattedClass:
+
 	var a =1
 	func block():
 		while(
@@ -22,7 +23,11 @@ class WeirdlyFormattedClass:
 				and false
 		):
 			pass
-
+	@abstract func abs()->void
+			
+class WeirdlyFormattedClass extends AWeirdlyFormattedClass:
+	func abs()->void:
+		pass
 # one line
 var _my_dictionary = {key = "value"}
 
