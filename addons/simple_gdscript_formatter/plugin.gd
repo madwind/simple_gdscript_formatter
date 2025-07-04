@@ -3,11 +3,26 @@ extends EditorPlugin
 
 const FORMAT_ACTION = &"simple_gdscript_formatter/format"
 const OPEN_EXTERNAL_ACTION = &"simple_gdscript_formatter/open_in_external_editor"
+
+const SETTING_PATH: String = "formatter/simple_gdscript_formatter/auto_run_on_save"
+
 var format_key: InputEventKey
 var open_external_key: InputEventKey
 
 
 func _enter_tree():
+	if not ProjectSettings.has_setting(SETTING_PATH):
+		ProjectSettings.set_setting(SETTING_PATH, false)
+		ProjectSettings.save()
+
+	ProjectSettings.add_property_info({
+		"name": SETTING_PATH,
+		"type": TYPE_BOOL,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": ""
+		})
+	ProjectSettings.save()
+
 	add_tool_menu_item("Format GDScript", _on_format_code)
 	if InputMap.has_action(FORMAT_ACTION):
 		InputMap.erase_action(FORMAT_ACTION)
@@ -28,6 +43,7 @@ func _enter_tree():
 	open_external_key.keycode = KEY_E
 	open_external_key.ctrl_pressed = true
 	InputMap.action_add_event(OPEN_EXTERNAL_ACTION, open_external_key)
+	self.connect("resource_saved", _on_any_save)
 
 
 func _exit_tree():
@@ -35,6 +51,7 @@ func _exit_tree():
 	InputMap.erase_action(FORMAT_ACTION)
 	remove_tool_menu_item("Open In External Editor")
 	InputMap.erase_action(OPEN_EXTERNAL_ACTION)
+	self.disconnect("resource_saved", _on_any_save)
 
 
 func _on_format_code():
@@ -84,3 +101,37 @@ func _shortcut_input(event: InputEvent) -> void:
 		_on_format_code()
 	if Input.is_action_pressed(OPEN_EXTERNAL_ACTION):
 		_open_external()
+
+
+func _save_current_script() -> void:
+	var editor = get_editor_interface()
+	var script_editor = editor.get_script_editor()
+	var ste = script_editor.get_current_editor()
+	if not (ste and ste.is_class("ScriptTextEditor")):
+		print("⚠️ No ScriptTextEditor active, aborting save.")
+		return
+
+	var text_ctrl = ste.get_base_editor()
+	var new_source = text_ctrl.get_text()
+	var script_res = script_editor.get_current_script()
+	var path = script_res.resource_path
+	if path == "":
+		push_error("❗ No script path; nothing to save.")
+		return
+
+	var f = FileAccess.open(path, FileAccess.WRITE)
+	if not f:
+		push_error("❗ Failed to open '%s' for writing." % path)
+		return
+
+	f.store_string(new_source)
+	f.close()
+	editor.get_resource_filesystem().scan()
+	text_ctrl.tag_saved_version()
+	editor.edit_script(script_res)
+
+
+func _on_any_save(arg) -> void:
+	if ProjectSettings.get_setting(SETTING_PATH):
+		_on_format_code()
+		_save_current_script()
