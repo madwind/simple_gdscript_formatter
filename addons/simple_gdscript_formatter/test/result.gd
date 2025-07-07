@@ -49,11 +49,14 @@ var _my_dictionary = { key = "value" }
 # Static
 static func do_static_thing() -> void:
 	pass
+
+
 func _init() -> void:
 	pass
 
 
 @abstract class AWeirdlyFormattedClass:
+
 	var a = 1
 
 
@@ -234,6 +237,8 @@ func block():
 		pass
 
 @warning_ignore("assert_always_false")
+
+
 class WeirdlyFormattedClass extends AWeirdlyFormattedClass:
 
 
