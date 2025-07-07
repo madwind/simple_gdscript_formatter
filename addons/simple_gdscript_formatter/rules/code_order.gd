@@ -71,7 +71,7 @@ static func apply(code: String) -> String:
 		if i > 5:
 			result += "\n"
 		else:
-			result = result.replace("\n\n", "\n")
+			result = RegEx.create_from_string(r"\n{2,}").sub(result, "\n", true)
 		for block: String in categorized_blocks.get(key):
 			if not block.begins_with("\n") and result.length() > 0:
 				result += "\n"
