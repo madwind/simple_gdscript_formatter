@@ -37,6 +37,12 @@ static func apply(code: String) -> String:
 	code = extract_and_categorize(r"@icon", "icon", categorized_blocks, code, true)
 	code = extract_and_categorize(r"@static_unload", "static_unload", categorized_blocks, code, true)
 	code = extract_and_categorize(r"@abstract[\S\s]+?class_name .*", "class_name", categorized_blocks, code, true)
+	code = extract_and_categorize(r"@export(?:(?!var)[\S\s])*?var _", "private_export_vars", categorized_blocks, code, true)
+	code = extract_and_categorize(r"@export[\S\s]*?var", "export_vars", categorized_blocks, code, true)
+	code = extract_and_categorize(r"@onready(?:(?!var)[\S\s])*?var _", "private_onready_vars", categorized_blocks, code, true)
+	code = extract_and_categorize(r"@onready(?:(?!var)[\S\s])*?var", "onready_vars", categorized_blocks, code, true)
+	code = extract_and_categorize(r"@abstract[\S\s]+?func ", "methods", categorized_blocks, code, true)
+	code = extract_and_categorize(r"@abstract[\S\s]+?class ", "subclasses", categorized_blocks, code, true)
 	code = extract_and_categorize(r"class_name .*", "class_name", categorized_blocks, code)
 	code = extract_and_categorize(r"extends .*", "extends", categorized_blocks, code)
 	code = extract_and_categorize(r"signal .*", "signals", categorized_blocks, code)
@@ -45,10 +51,6 @@ static func apply(code: String) -> String:
 	code = extract_and_categorize(r"const", "constants", categorized_blocks, code)
 	code = extract_and_categorize(r"static var _", "private_static_vars", categorized_blocks, code)
 	code = extract_and_categorize(r"static var", "static_vars", categorized_blocks, code)
-	code = extract_and_categorize(r"@export(?:(?!var)[\S\s])*?var _", "private_export_vars", categorized_blocks, code, true)
-	code = extract_and_categorize(r"@export[\S\s]*?var", "export_vars", categorized_blocks, code, true)
-	code = extract_and_categorize(r"@onready[\S\s]*?var _", "private_onready_vars", categorized_blocks, code, true)
-	code = extract_and_categorize(r"@onready(?:(?!var)[\S\s])*?var", "onready_vars", categorized_blocks, code, true)
 	code = extract_and_categorize(r"var _", "private_vars", categorized_blocks, code)
 	code = extract_and_categorize(r"var", "vars", categorized_blocks, code)
 	code = extract_and_categorize(r"func _static_init", "_static_init", categorized_blocks, code)
@@ -60,10 +62,8 @@ static func apply(code: String) -> String:
 	code = extract_and_categorize(r"func _physics_process", "virtual__physics_process", categorized_blocks, code)
 	code = extract_and_categorize(r"func _(input|unhandled)", "virtual_others", categorized_blocks, code)
 	code = extract_and_categorize(r"func _", "private_methods", categorized_blocks, code)
-	code = extract_and_categorize(r"@abstract[\S\s]+?func ", "methods", categorized_blocks, code, true)
 	code = extract_and_categorize(r"func ", "methods", categorized_blocks, code)
 	code = extract_and_categorize(r"class ", "subclasses", categorized_blocks, code)
-	code = extract_and_categorize(r"@abstract[\S\s]+?class ", "subclasses", categorized_blocks, code, true)
 	assert(code.strip_edges() == "", "Unprocessed code:" + code + "\n Origin code:" + origin_code)
 	var result := ""
 	var i = 0
@@ -73,6 +73,7 @@ static func apply(code: String) -> String:
 		else:
 			result = RegEx.create_from_string(r"\n{2,}").sub(result, "\n", true)
 		for block: String in categorized_blocks.get(key):
+			prints("======>", key, block)
 			if not block.begins_with("\n") and result.length() > 0:
 				result += "\n"
 			result += block

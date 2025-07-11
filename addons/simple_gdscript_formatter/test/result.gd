@@ -21,8 +21,6 @@ enum SIDE {
 	ANY,
 }
 
-@onready var r1 = 2
-
 const _private_const := 2
 
 # Export
@@ -42,6 +40,8 @@ var weird_colon := 42
 
 # one line
 var _my_dictionary = { key = "value" }
+
+@onready var r1 = 2
 
 @onready var _r2 = 1
 
