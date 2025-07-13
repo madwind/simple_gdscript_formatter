@@ -236,9 +236,8 @@ func block():
 	):
 		pass
 
+
 @warning_ignore("assert_always_false")
-
-
 class WeirdlyFormattedClass extends AWeirdlyFormattedClass:
 
 

@@ -73,7 +73,6 @@ static func apply(code: String) -> String:
 		else:
 			result = RegEx.create_from_string(r"\n{2,}").sub(result, "\n", true)
 		for block: String in categorized_blocks.get(key):
-			prints("======>", key, block)
 			if not block.begins_with("\n") and result.length() > 0:
 				result += "\n"
 			result += block
