@@ -2,13 +2,13 @@ static func apply(code: String) -> String:
 	var trim_double_newlines := RegEx.create_from_string(r"\n{2,}")
 	code = trim_double_newlines.sub(code, "\n\n", true)
 
+	var trim_annotation := RegEx.create_from_string(r"(\n@(?:(?!var|func|class_name|class|extends)[\s\S])*?)\n+?(?=\b(var|func|class_name|class|extends)\b)")
+	code = trim_annotation.sub(code, "$1\n", true)
+	
 	code = _ensure_blank_lines_before_declarations(code)
 
 	var trim_triple_newlines := RegEx.create_from_string(r"\n{3,}")
 	code = trim_triple_newlines.sub(code, "\n\n\n", true)
-
-	var trim_annotation := RegEx.create_from_string(r"(\n@(?:(?!var|func|class_name|class|extends)[\s\S])*?)\n+?(?=\b(var|func|class_name|class|extends)\b)")
-	code = trim_annotation.sub(code, "$1\n", true)
 
 	var offset = code.find(r"\nclass ")
 	if offset > -1:
