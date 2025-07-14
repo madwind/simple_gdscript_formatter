@@ -82,5 +82,7 @@ func _open_external() -> void:
 func _shortcut_input(event: InputEvent) -> void:
 	if Input.is_action_pressed(FORMAT_ACTION):
 		_on_format_code()
+		get_tree().root.set_input_as_handled()
 	if Input.is_action_pressed(OPEN_EXTERNAL_ACTION):
 		_open_external()
+		get_tree().root.set_input_as_handled()
