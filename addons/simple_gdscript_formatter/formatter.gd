@@ -93,6 +93,9 @@ func _apply_rules(code: String) -> String:
 	code = Spacing.apply(code)
 
 	code = BlankLines.apply(code)
+
+	code = _apply_editor_indent_setting(code)
+
 	return code
 
 
@@ -120,3 +123,16 @@ func _extrat_text(code_edit: CodeEdit, start_line: int, start_column: int, end_l
 		else:
 			text += '\n' + code_edit.get_line(i)
 	return text
+
+
+func _apply_editor_indent_setting(code: String) -> String:
+	var settings = EditorInterface.get_editor_settings()
+	var indent_type = settings.get_setting("text_editor/behavior/indent/type")
+	if indent_type == 1:
+		var indent_size = settings.get_setting("text_editor/behavior/indent/size")
+		var indent_str = " ".repeat(indent_size)
+		var indent_regex = RegEx.create_from_string(r"\n\t+")
+		for m in indent_regex.search_all(code):
+			var tab_length = m.get_string().length() - 1
+			code = indent_regex.sub(code, "\n" + indent_str.repeat(tab_length))
+	return code
