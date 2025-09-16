@@ -4,7 +4,7 @@ static func apply(code: String) -> String:
 
 	var trim_annotation := RegEx.create_from_string(r"(\n@(?:(?!var|func|class_name|class|extends)[\s\S])*?)\n+?(?=\b(var|func|class_name|class|extends)\b)")
 	code = trim_annotation.sub(code, "$1\n", true)
-	
+
 	code = _ensure_blank_lines_before_declarations(code)
 
 	var trim_triple_newlines := RegEx.create_from_string(r"\n{3,}")

@@ -220,3 +220,11 @@ enum SIDE {TOP, LEFT, BOTTOM, RIGHT, ANY}
 @onready var r1=2
 
 const _private_const := 2
+
+@rpc("any_peer", "reliable")
+func request_lobby_details(from_peer_id: int):
+	pass
+ 	
+@rpc("any_peer", "reliable")
+func receive_lobby_details(details: Dictionary):
+	pass
