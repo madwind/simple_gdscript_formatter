@@ -38,6 +38,8 @@ text
 
 var weird_colon := 42
 
+var node_path = ^".."
+
 # one line
 var _my_dictionary = { key = "value" }
 
@@ -235,6 +237,11 @@ func block():
 			and false
 	):
 		pass
+
+
+@rpc("any_peer", "reliable")
+func request_lobby_details(from_peer_id: int):
+	pass
 
 
 @warning_ignore("assert_always_false")

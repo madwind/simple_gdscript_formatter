@@ -225,6 +225,4 @@ const _private_const := 2
 func request_lobby_details(from_peer_id: int):
 	pass
  	
-@rpc("any_peer", "reliable")
-func receive_lobby_details(details: Dictionary):
-	pass
+var node_path = ^".."
