@@ -41,6 +41,9 @@ func _on_format_code():
 	var current_editor := EditorInterface.get_script_editor().get_current_editor()
 	if current_editor and current_editor.is_class("ScriptTextEditor"):
 		var code_edit := current_editor.get_base_editor() as CodeEdit
+		var folded_lines= {}
+		for folded_line_number in code_edit.get_folded_lines():
+			folded_lines[folded_line_number] = code_edit.get_line(folded_line_number)
 		var code = code_edit.text
 		var formatter = preload("formatter.gd").new()
 		var formatted_code = formatter.format(code_edit)
@@ -56,6 +59,10 @@ func _on_format_code():
 			code_edit.undo()
 			code_edit.scroll_horizontal = scroll_horizontal
 			code_edit.scroll_vertical = scroll_vertical
+			for index in folded_lines:
+				for i in code_edit.get_line_count():
+					if code_edit.get_line(i) == folded_lines[index]:
+						code_edit.fold_line(i)
 
 
 func _open_external() -> void:
