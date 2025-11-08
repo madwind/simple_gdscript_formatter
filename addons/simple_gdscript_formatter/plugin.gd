@@ -13,6 +13,11 @@ func _enter_tree():
 		InputMap.erase_action(FORMAT_ACTION)
 	InputMap.add_action(FORMAT_ACTION)
 
+	#Setting to enable/disable the open_in_external_editor feature
+	if not ProjectSettings.has_setting(OPEN_EXTERNAL_ACTION):
+		ProjectSettings.set_setting(OPEN_EXTERNAL_ACTION, true)
+		ProjectSettings.set_initial_value(OPEN_EXTERNAL_ACTION, true)
+
 	format_key = InputEventKey.new()
 	format_key.keycode = KEY_L
 	format_key.ctrl_pressed = true
@@ -80,9 +85,12 @@ func _open_external() -> void:
 
 
 func _shortcut_input(event: InputEvent) -> void:
+	#Format the script
 	if Input.is_action_pressed(FORMAT_ACTION):
 		_on_format_code()
 		get_tree().root.set_input_as_handled()
-	if Input.is_action_pressed(OPEN_EXTERNAL_ACTION):
-		_open_external()
-		get_tree().root.set_input_as_handled()
+	#Open in External Editor- uses ProjectSettings to enable or disable feature.
+	if ProjectSettings.get_setting(OPEN_EXTERNAL_ACTION, true):
+		if Input.is_action_pressed(OPEN_EXTERNAL_ACTION):
+			_open_external()
+			get_tree().root.set_input_as_handled()
