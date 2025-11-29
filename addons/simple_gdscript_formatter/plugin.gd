@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const FORMAT_ACTION = &"simple_gdscript_formatter/format"
+const FORMAT_ACTION        = &"simple_gdscript_formatter/format"
 const OPEN_EXTERNAL_ACTION = &"simple_gdscript_formatter/open_in_external_editor"
 var format_key: InputEventKey
 var open_external_key: InputEventKey
@@ -45,15 +45,15 @@ func _exit_tree():
 func _on_format_code():
 	var current_editor := EditorInterface.get_script_editor().get_current_editor()
 	if current_editor and current_editor.is_class("ScriptTextEditor"):
-		var code_edit := current_editor.get_base_editor() as CodeEdit
-		var code = code_edit.text
-		var formatter = preload("formatter.gd").new()
-		var formatted_code = formatter.format(code_edit)
+		var code_edit      := current_editor.get_base_editor() as CodeEdit
+		var code           =  code_edit.text
+		var formatter      =  preload("formatter.gd").new()
+		var formatted_code =  formatter.format(code_edit)
 		if formatted_code && code != formatted_code:
 			var scroll_horizontal = code_edit.scroll_horizontal
-			var scroll_vertical = code_edit.scroll_vertical
-			var caret_column = code_edit.get_caret_column(0)
-			var caret_line = code_edit.get_caret_line(0)
+			var scroll_vertical   = code_edit.scroll_vertical
+			var caret_column      = code_edit.get_caret_column(0)
+			var caret_line        = code_edit.get_caret_line(0)
 			code_edit.text = formatted_code
 			code_edit.set_caret_line(caret_line)
 			code_edit.set_caret_column(caret_column)
@@ -64,15 +64,15 @@ func _on_format_code():
 
 
 func _open_external() -> void:
-	var script_editor := EditorInterface.get_script_editor()
+	var script_editor  := EditorInterface.get_script_editor()
 	var current_editor := script_editor.get_current_editor()
 	if current_editor and current_editor.is_class("ScriptTextEditor"):
-		var file: String = ProjectSettings.globalize_path(script_editor.get_current_script().resource_path)
-		var project: String = ProjectSettings.globalize_path("res://")
-		var exec_path: String = EditorInterface.get_editor_settings().get_setting("text_editor/external/exec_path")
+		var file: String       = ProjectSettings.globalize_path(script_editor.get_current_script().resource_path)
+		var project: String    = ProjectSettings.globalize_path("res://")
+		var exec_path: String  = EditorInterface.get_editor_settings().get_setting("text_editor/external/exec_path")
 		var exec_flags: String = EditorInterface.get_editor_settings().get_setting("text_editor/external/exec_flags")
 		if exec_path and exec_flags:
-			var col = current_editor.get_base_editor().get_caret_column(0)
+			var col  = current_editor.get_base_editor().get_caret_column(0)
 			var line = current_editor.get_base_editor().get_caret_line(0)
 			if exec_path.contains("rider"):
 				var tabs := RegEx.create_from_string("\t*").search(current_editor.get_base_editor().get_line(line).substr(0, col))
@@ -93,5 +93,5 @@ func _shortcut_input(event: InputEvent) -> void:
 	if ProjectSettings.get_setting(OPEN_EXTERNAL_ACTION, true):
 		if Input.is_action_pressed(OPEN_EXTERNAL_ACTION):
 			if event is InputEventKey and event.get_keycode_with_modifiers() == Key.KEY_E | KeyModifierMask.KEY_MASK_CTRL:
-        		_open_external()
-        		get_tree().root.set_input_as_handled()
+				_open_external()
+				get_tree().root.set_input_as_handled()
