@@ -14,10 +14,6 @@ config/name="simple_gdscript_formatter"
 config/features=PackedStringArray("4.5", "Forward Plus")
 boot_splash/image="uid://cn78s1t4clrbr"
 
-[debug]
-
-gdscript/warnings/untyped_declaration=2
-
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/simple_gdscript_formatter/plugin.cfg")
