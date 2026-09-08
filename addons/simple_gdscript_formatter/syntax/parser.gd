@@ -11,6 +11,14 @@ const DECLARATIONS = {
 	K.SIGNAL: N.SIGNAL_DECL, K.ENUM: N.ENUM_DECL, K.FUNC: N.FUNCTION_DECL,
 }
 const CLOSE = {K.LEFT_PAREN: K.RIGHT_PAREN, K.LEFT_BRACKET: K.RIGHT_BRACKET, K.LEFT_BRACE: K.RIGHT_BRACE}
+const STATEMENTS = {
+	K.IF: N.IF_STMT, K.ELIF: N.ELIF_CLAUSE, K.ELSE: N.ELSE_CLAUSE,
+	K.FOR: N.FOR_STMT, K.WHILE: N.WHILE_STMT, K.MATCH: N.MATCH_STMT,
+	K.RETURN: N.RETURN_STMT, K.BREAK: N.BREAK_STMT,
+	K.CONTINUE: N.CONTINUE_STMT, K.PASS: N.PASS_STMT,
+}
+const SUITES = [N.IF_STMT, N.ELIF_CLAUSE, N.ELSE_CLAUSE, N.FOR_STMT,
+	N.WHILE_STMT, N.MATCH_STMT, N.MATCH_BRANCH, N.FUNCTION_DECL, N.CLASS_DECL]
 
 var tree
 var tokens: Array
@@ -28,10 +36,13 @@ func parse(stream: Array):
 	return tree
 
 
-func _parse_scope(parent_indent: int, kind: int):
+func _parse_scope(parent_indent: int, kind: int, match_branches := false):
 	var block = Cst.CstNode.new(kind, cursor)
 	while cursor < tokens.size():
 		_skip_whitespace()
+		if _kind() == K.SEMICOLON:
+			cursor += 1
+			continue
 		if cursor >= tokens.size() or _kind() in CLOSE.values():
 			break
 		if _kind() != K.COMMENT and _indent(cursor) <= parent_indent:
@@ -47,7 +58,7 @@ func _parse_scope(parent_indent: int, kind: int):
 			cursor += 1
 			continue
 		var before := cursor
-		var member = _parse_item()
+		var member = _parse_item(N.MATCH_BRANCH if match_branches else -1)
 		_attach_comments(block, member)
 		block.children.append(member)
 		if cursor <= before:
@@ -57,7 +68,7 @@ func _parse_scope(parent_indent: int, kind: int):
 	return block
 
 
-func _parse_item():
+func _parse_item(forced_kind := -1):
 	var start := cursor
 	var indentation := _indent(start)
 	var annotations: Array = []
@@ -76,7 +87,9 @@ func _parse_item():
 		cursor += 1
 		_skip_horizontal()
 		keyword = cursor
-	var kind: int = DECLARATIONS.get(_kind(), N.OPAQUE_EXPRESSION)
+	var kind: int = DECLARATIONS.get(_kind(), STATEMENTS.get(_kind(), N.EXPRESSION_STMT))
+	if forced_kind >= 0:
+		kind = forced_kind
 	var member = Cst.CstNode.new(kind, start)
 	member.attributes["keyword"] = keyword
 	member.attributes["indent"] = indentation
@@ -86,7 +99,7 @@ func _parse_item():
 		var annotation_list = Cst.CstNode.new(N.ANNOTATION_LIST, start, annotations[-1].last_token)
 		annotation_list.children = annotations
 		member.children.append(annotation_list)
-	if keyword < tokens.size() and kind != N.OPAQUE_EXPRESSION:
+	if keyword < tokens.size() and _kind() in DECLARATIONS:
 		var name := _next_significant(keyword + 1)
 		if name < tokens.size() and tokens[name].kind == K.IDENTIFIER:
 			member.attributes["name_token"] = name
@@ -101,9 +114,27 @@ func _parse_item():
 	member.attributes["header_end"] = cursor
 	var last := _previous_significant(cursor - 1)
 	if last >= keyword and tokens[last].kind == K.COLON:
+		_skip_horizontal()
+		if _kind() not in [-1, K.NEWLINE, K.COMMENT]:
+			var body = Cst.CstNode.new(N.BLOCK, cursor)
+			body.attributes["inline"] = true
+			while _kind() not in [-1, K.NEWLINE, K.COMMENT] and _kind() not in CLOSE.values():
+				body.children.append(_parse_item())
+				if _kind() != K.SEMICOLON:
+					break
+				cursor += 1
+				_skip_horizontal()
+			body.last_token = cursor
+			member.children.append(body)
+			member.attributes["body"] = body
+			member.last_token = cursor
+			return member
+		if _kind() == K.COMMENT:
+			cursor += 1
+		member.attributes["header_end"] = cursor
 		var next := _next_code(cursor)
 		if next < tokens.size() and _indent(next) > indentation:
-			var body = _parse_scope(indentation, N.OPAQUE_BLOCK)
+			var body = _parse_scope(indentation, N.BLOCK, kind == N.MATCH_STMT)
 			member.children.append(body)
 			member.attributes["body"] = body
 	member.last_token = cursor
@@ -111,15 +142,22 @@ func _parse_item():
 
 
 func _read_header(member) -> void:
-	while cursor < tokens.size() and _kind() != K.NEWLINE and _kind() not in CLOSE.values():
+	var saw_in := false
+	while cursor < tokens.size() and _kind() not in [K.NEWLINE, K.SEMICOLON] and _kind() not in CLOSE.values():
 		if _kind() in CLOSE:
 			member.children.append(_parse_delimited())
+		elif _kind() == K.COLON and member.kind in SUITES and (member.kind != N.FOR_STMT or saw_in):
+			member.attributes["colon"] = cursor
+			cursor += 1
+			return
 		elif _kind() == K.BACKSLASH:
 			cursor += 1
 			_skip_horizontal()
 			if _kind() == K.NEWLINE:
 				cursor += 1
 		else:
+			if _kind() == K.IN:
+				saw_in = true
 			cursor += 1
 
 

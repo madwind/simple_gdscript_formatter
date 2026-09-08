@@ -14,6 +14,7 @@ func _init() -> void:
 	_test_lexer()
 	_test_declarations()
 	_test_organizer()
+	_test_statements()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -82,3 +83,16 @@ func _test_organizer() -> void:
 	check(MemberOrganizer.new().organize(result) == result, "organizer is stable")
 	result = MemberOrganizer.new().organize("class Inner:\n    var z := [\n        1, 2\n    ]\n    signal changed\n")
 	check(result.begins_with("class Inner:\n    signal changed\n    var z"), "organizer handles nested classes and multiline declarations")
+
+
+func _test_statements() -> void:
+	var tree = parse("func run():\n    if value:\n        for item in items:\n            while item:\n                break\n    elif other:\n        return 1\n    else:\n        pass\n    match value:\n        1:\n            foo()\n        2, 3 when ok:\n            continue\n        _:\n            pass\n    if value: pass; foo()\n")
+	var body = tree.root.children[0].attributes.body
+	check(body.kind == Cst.Kind.BLOCK and body.children.size() == 5, "function statement block")
+	var loop = body.children[0].attributes.body.children[0]
+	check(loop.kind == Cst.Kind.FOR_STMT, "nested for statement")
+	check(loop.attributes.body.children[0].kind == Cst.Kind.WHILE_STMT, "nested while statement")
+	check(body.children[1].kind == Cst.Kind.ELIF_CLAUSE and body.children[2].kind == Cst.Kind.ELSE_CLAUSE, "elif and else clauses")
+	var branches = body.children[3].attributes.body.children
+	check(branches.size() == 3 and branches[1].kind == Cst.Kind.MATCH_BRANCH, "match branches are structural")
+	check(body.children[4].attributes.body.children.size() == 2, "inline suite with semicolons")
