@@ -15,6 +15,7 @@ func _init() -> void:
 	_test_declarations()
 	_test_organizer()
 	_test_statements()
+	_test_expressions()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -96,3 +97,32 @@ func _test_statements() -> void:
 	var branches = body.children[3].attributes.body.children
 	check(branches.size() == 3 and branches[1].kind == Cst.Kind.MATCH_BRANCH, "match branches are structural")
 	check(body.children[4].attributes.body.children.size() == 2, "inline suite with semicolons")
+
+
+func expression(source: String):
+	return parse(source).root.children[0].attributes.expressions[0]
+
+
+func _test_expressions() -> void:
+	var node = expression("a + b * c")
+	check(node.kind == Cst.Kind.BINARY_EXPR and node.children[1].kind == Cst.Kind.BINARY_EXPR, "multiplication binds before addition")
+	check(expression("-2 ** 2").kind == Cst.Kind.UNARY_EXPR, "power binds before unary sign")
+	node = expression("a ** b ** c")
+	check(node.children[0].kind == Cst.Kind.BINARY_EXPR, "power is left-associative in GDScript")
+	node = expression("not a in b and c")
+	check(node.children[0].kind == Cst.Kind.UNARY_EXPR, "not binds below membership and above and")
+	node = expression("foo.bar[index](a + b)")
+	check(node.kind == Cst.Kind.CALL_EXPR and node.children[0].kind == Cst.Kind.SUBSCRIPT_EXPR, "call and subscript chain")
+	check(node.children[0].children[0].kind == Cst.Kind.MEMBER_EXPR, "member access")
+	check(expression("x = y + z").kind == Cst.Kind.ASSIGNMENT_EXPR, "assignment")
+	check(expression("x if condition else y").kind == Cst.Kind.CONDITIONAL_EXPR, "conditional expression")
+	check(expression("x as Node").kind == Cst.Kind.CAST_EXPR, "cast")
+	check(expression("x is Node").kind == Cst.Kind.TYPE_CHECK_EXPR, "type check")
+	check(expression("await foo()").kind == Cst.Kind.AWAIT_EXPR, "await")
+	check(expression("[1, {\"key\": [2, 3]}]").kind == Cst.Kind.ARRAY_EXPR, "nested containers")
+	var tree = parse("sig.connect(\n    func() -> void:\n        sig.connect(func():\n            if value:\n                foo()\n        )\n        match value:\n            _:\n                pass\n)\nvar callback := func(value: int) -> void:\n    print(value)\nvar after := 1\n")
+	check(tree.root.children.size() == 3, "lambda does not consume next declaration")
+	node = tree.root.children[0].attributes.expressions[0].children[1].children[0]
+	check(node.kind == Cst.Kind.LAMBDA_EXPR and node.attributes.body.children.size() == 2, "lambda has a statement block")
+	var nested = node.attributes.body.children[0].attributes.expressions[0].children[1].children[0]
+	check(nested.kind == Cst.Kind.LAMBDA_EXPR and nested.attributes.body.children[0].kind == Cst.Kind.IF_STMT, "nested lambda statements")

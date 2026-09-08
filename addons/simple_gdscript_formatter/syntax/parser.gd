@@ -3,6 +3,7 @@ extends RefCounted
 
 const Token = preload("token.gd")
 const Cst = preload("cst.gd")
+const ExpressionParser = preload("expression_parser.gd")
 const K = Token.Kind
 const N = Cst.Kind
 const DECLARATIONS = {
@@ -18,7 +19,7 @@ const STATEMENTS = {
 	K.CONTINUE: N.CONTINUE_STMT, K.PASS: N.PASS_STMT,
 }
 const SUITES = [N.IF_STMT, N.ELIF_CLAUSE, N.ELSE_CLAUSE, N.FOR_STMT,
-	N.WHILE_STMT, N.MATCH_STMT, N.MATCH_BRANCH, N.FUNCTION_DECL, N.CLASS_DECL]
+	N.WHILE_STMT, N.MATCH_STMT, N.MATCH_BRANCH, N.FUNCTION_DECL, N.CLASS_DECL, N.LAMBDA_EXPR]
 
 var tree
 var tokens: Array
@@ -33,6 +34,7 @@ func parse(stream: Array):
 	tree.root = _parse_scope(-1, N.SCRIPT)
 	tree.root.first_token = 0
 	tree.root.last_token = tokens.size()
+	ExpressionParser.new().annotate(tree)
 	return tree
 
 
@@ -68,7 +70,7 @@ func _parse_scope(parent_indent: int, kind: int, match_branches := false):
 	return block
 
 
-func _parse_item(forced_kind := -1):
+func _parse_item(forced_kind := -1, stop_at_comma := false):
 	var start := cursor
 	var indentation := _indent(start)
 	var annotations: Array = []
@@ -95,6 +97,7 @@ func _parse_item(forced_kind := -1):
 	member.attributes["indent"] = indentation
 	member.attributes["static"] = static_member
 	member.attributes["annotations"] = annotations
+	member.attributes["stop_at_comma"] = stop_at_comma
 	if not annotations.is_empty():
 		var annotation_list = Cst.CstNode.new(N.ANNOTATION_LIST, start, annotations[-1].last_token)
 		annotation_list.children = annotations
@@ -119,7 +122,7 @@ func _parse_item(forced_kind := -1):
 			var body = Cst.CstNode.new(N.BLOCK, cursor)
 			body.attributes["inline"] = true
 			while _kind() not in [-1, K.NEWLINE, K.COMMENT] and _kind() not in CLOSE.values():
-				body.children.append(_parse_item())
+				body.children.append(_parse_item(-1, kind == N.LAMBDA_EXPR or stop_at_comma))
 				if _kind() != K.SEMICOLON:
 					break
 				cursor += 1
@@ -144,7 +147,14 @@ func _parse_item(forced_kind := -1):
 func _read_header(member) -> void:
 	var saw_in := false
 	while cursor < tokens.size() and _kind() not in [K.NEWLINE, K.SEMICOLON] and _kind() not in CLOSE.values():
-		if _kind() in CLOSE:
+		if _kind() == K.COMMA and member.attributes.get("stop_at_comma", false):
+			return
+		if _kind() == K.FUNC and cursor != member.attributes.keyword:
+			var lambda = _parse_item(N.LAMBDA_EXPR, true)
+			member.children.append(lambda)
+			if lambda.attributes.has("body") and not lambda.attributes.body.attributes.get("inline", false):
+				return
+		elif _kind() in CLOSE:
 			member.children.append(_parse_delimited())
 		elif _kind() == K.COLON and member.kind in SUITES and (member.kind != N.FOR_STMT or saw_in):
 			member.attributes["colon"] = cursor
@@ -169,6 +179,8 @@ func _parse_delimited():
 	while cursor < tokens.size() and _kind() != closing:
 		if _kind() in CLOSE:
 			node.children.append(_parse_delimited())
+		elif _kind() == K.FUNC:
+			node.children.append(_parse_item(N.LAMBDA_EXPR, true))
 		elif _kind() in CLOSE.values():
 			tree.errors.append("Mismatched delimiter at token %d" % cursor)
 			break
