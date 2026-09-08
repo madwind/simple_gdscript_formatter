@@ -53,7 +53,9 @@ func evaluate() -> Array:
 last"""
     var continued := 1 + \
         2
+    var variant: Variant = 1
     return [trace, outer.call(3), callbacks[0].call(), callbacks[1].call(),
         total, property, Inner.new().read(), data, multiline, continued,
         -2 ** 2, 2 ** 3 ** 2, not 1 in [2], 1 if true else 2, &"name", ^"../Node",
-        grouped_callbacks[0].call(3), grouped_callbacks[1].call(3), callback_map["run"].call()]
+        grouped_callbacks[0].call(3), grouped_callbacks[1].call(3), callback_map["run"].call(),
+        variant is not String and true, 1 as float == 1.0]

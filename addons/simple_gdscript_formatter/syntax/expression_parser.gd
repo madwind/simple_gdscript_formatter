@@ -20,6 +20,7 @@ var tree
 var tokens: Array
 var atoms: Array = []
 var position := 0
+var range_end := 0
 
 
 func annotate(syntax_tree) -> void:
@@ -78,8 +79,10 @@ func _top_level_token(first: int, last: int, structures: Array, texts: Array) ->
 func parse_range(first: int, last: int, structures: Array) -> Array:
 	var saved_atoms := atoms
 	var saved_position := position
+	var saved_end := range_end
 	atoms = []
 	position = 0
+	range_end = last
 	var indexed := {}
 	for child in structures:
 		if child.attributes.has("open") or child.kind == N.LAMBDA_EXPR:
@@ -111,6 +114,7 @@ func parse_range(first: int, last: int, structures: Array) -> Array:
 			position += 1
 	atoms = saved_atoms
 	position = saved_position
+	range_end = saved_end
 	return result
 
 
@@ -121,7 +125,8 @@ func _expression(minimum: int):
 		if not atom is int and atom.attributes.has("open"):
 			var open: int = tokens[atom.attributes.open].kind
 			if open in [K.LEFT_PAREN, K.LEFT_BRACKET]:
-				if 20 < minimum:
+				var precedence := 20 if open == K.LEFT_PAREN else 22
+				if precedence < minimum:
 					break
 				position += 1
 				left = _node(N.CALL_EXPR if open == K.LEFT_PAREN else N.SUBSCRIPT_EXPR, left.first_token, atom.last_token, [left, atom])
@@ -143,7 +148,7 @@ func _expression(minimum: int):
 		if op == "not":
 			position += 1
 		if op == "if":
-			var condition = _expression(4)
+			var condition = _expression(3)
 			if _text() != "else":
 				left = _node(N.OPAQUE_EXPRESSION, left.first_token, condition.last_token, [left, condition])
 				continue
@@ -151,22 +156,27 @@ func _expression(minimum: int):
 			var alternative = _expression(3)
 			left = _node(N.CONDITIONAL_EXPR, left.first_token, alternative.last_token, [left, condition, alternative], operator)
 			continue
+		if op in ["as", "is"]:
+			var negated := op == "is" and _text() == "not"
+			if negated:
+				position += 1
+			# The right operand is a syntactic type name (possibly qualified or
+			# parameterized), so it cannot consume a following binary operator.
+			var type_name = _expression(21)
+			left = _node(N.CAST_EXPR if op == "as" else N.TYPE_CHECK_EXPR, left.first_token, type_name.last_token, [left, type_name], operator)
+			left.attributes["negated"] = negated
+			continue
 		var right = _expression(precedence if precedence == 1 else precedence + 1)
 		var kind := N.BINARY_EXPR
 		if precedence == 1:
 			kind = N.ASSIGNMENT_EXPR
-		elif op == "as":
-			kind = N.CAST_EXPR
-		elif op == "is":
-			kind = N.TYPE_CHECK_EXPR
 		left = _node(kind, left.first_token, right.last_token, [left, right], operator)
 	return left
 
 
 func _prefix():
 	if position >= atoms.size():
-		var end: int = tokens.size()
-		return _node(N.OPAQUE_EXPRESSION, end, end)
+		return _node(N.OPAQUE_EXPRESSION, range_end, range_end)
 	var atom = atoms[position]
 	position += 1
 	if not atom is int:
