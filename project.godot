@@ -21,3 +21,7 @@ boot_splash/image="uid://cn78s1t4clrbr"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/simple_gdscript_formatter/plugin.cfg")
+
+[simple_gdscript_formatter]
+
+organize_members=true

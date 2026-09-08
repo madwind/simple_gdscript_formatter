@@ -6,6 +6,9 @@ const Parser = preload("syntax/parser.gd")
 const CstFormatter = preload("format/formatter.gd")
 const Printer = preload("format/printer.gd")
 const ShaderFormatter = preload("shader_formatter.gd")
+const MemberOrganizer = preload("transform/member_organizer.gd")
+
+const ORGANIZE_MEMBERS_SETTING = &"simple_gdscript_formatter/organize_members"
 
 
 func format(code_edit: CodeEdit) -> String:
@@ -17,6 +20,8 @@ func format_shader(code_edit: CodeEdit) -> String:
 
 
 func format_source(source: String, indent_text := "\t", line_width := 100) -> String:
+	if ProjectSettings.get_setting(ORGANIZE_MEMBERS_SETTING, true):
+		source = MemberOrganizer.new().organize(source)
 	var lexer = Lexer.new()
 	var tokens: Array = lexer.tokenize(source)
 	if not lexer.errors.is_empty():

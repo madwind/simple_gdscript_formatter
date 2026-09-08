@@ -1,6 +1,6 @@
 extends RefCounted
-## Explicit, opt-in transformation: moving initializers can change behavior.
-## The normal formatter never calls this module.
+## Optional transformation controlled by simple_gdscript_formatter/organize_members.
+## Moving initializers can change behavior.
 
 const Lexer = preload("../syntax/lexer.gd")
 const Parser = preload("../syntax/parser.gd")

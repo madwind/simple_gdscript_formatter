@@ -3,6 +3,7 @@ extends EditorPlugin
 
 const FORMAT_ACTION = &"simple_gdscript_formatter/format"
 const OPEN_EXTERNAL_ACTION = &"simple_gdscript_formatter/open_in_external_editor"
+const ORGANIZE_MEMBERS_SETTING = &"simple_gdscript_formatter/organize_members"
 const FORMAT_MENU_ITEM = "Format GDScript / Shader"
 
 var format_key: InputEventKey
@@ -11,6 +12,7 @@ var connected_code_edit_handlers: Dictionary = {}
 
 
 func _enter_tree():
+	_register_project_settings()
 	add_tool_menu_item(FORMAT_MENU_ITEM, _on_format_code)
 	get_tree().node_added.connect(_on_editor_node_added)
 	call_deferred("_bind_code_edit_inputs")
@@ -38,6 +40,16 @@ func _enter_tree():
 	open_external_key.keycode = KEY_E
 	open_external_key.ctrl_pressed = true
 	InputMap.action_add_event(OPEN_EXTERNAL_ACTION, open_external_key)
+
+
+func _register_project_settings() -> void:
+	ProjectSettings.add_property_info({
+		"name": ORGANIZE_MEMBERS_SETTING,
+		"type": TYPE_BOOL,
+	})
+	if not ProjectSettings.has_setting(ORGANIZE_MEMBERS_SETTING):
+		ProjectSettings.set_setting(ORGANIZE_MEMBERS_SETTING, true)
+	ProjectSettings.set_initial_value(ORGANIZE_MEMBERS_SETTING, true)
 
 
 func _exit_tree():

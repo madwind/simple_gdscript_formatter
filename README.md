@@ -8,10 +8,17 @@ dependencies.
 
 Godot shader files (`.gdshader`) are also supported by a separate formatter.
 
-Normal formatting preserves declaration order, strings, and comment text. It
-supports nested classes, lambdas, match branches, annotations, typed collections,
-and multiline expressions. Formatting is deterministic and idempotent. Editor
+Formatting sorts declarations into the configured Godot-style member order by
+default, while preserving strings, comments, and declaration-associated
+annotations. Set `simple_gdscript_formatter/organize_members` to `false` in
+Project Settings to preserve the original declaration order. It supports
+nested classes, lambdas, match branches, annotations, typed collections, and
+multiline expressions. Formatting is deterministic and idempotent. Editor
 Tab/space indentation preferences remain supported.
+
+Member organization can change the order in which member initializers run. Set
+the option to `false` for scripts that depend on the original initialization
+order.
 
 ### Open in External Editor (`Ctrl + E`)
 *Bypasses the "Use External Editor" setting*  
