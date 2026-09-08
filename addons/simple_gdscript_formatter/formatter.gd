@@ -1,4 +1,3 @@
-const CodeOrder = preload("rules/code_order.gd")
 const Spacing = preload("rules/spacing.gd")
 const SyntaxStyle = preload("rules/syntax_style.gd")
 const BlankLines = preload("rules/blank_lines.gd")
@@ -87,9 +86,6 @@ func _apply_rules(code: String) -> String:
 	code = Spacing.apply(code)
 
 	code = SyntaxStyle.apply(code)
-	code = Spacing.apply(code)
-
-	code = CodeOrder.apply(code)
 	code = Spacing.apply(code)
 
 	code = BlankLines.apply(code)

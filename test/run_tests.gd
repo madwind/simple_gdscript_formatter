@@ -4,6 +4,7 @@ const Lexer = preload("../addons/simple_gdscript_formatter/syntax/lexer.gd")
 const Token = preload("../addons/simple_gdscript_formatter/syntax/token.gd")
 const Parser = preload("../addons/simple_gdscript_formatter/syntax/parser.gd")
 const Cst = preload("../addons/simple_gdscript_formatter/syntax/cst.gd")
+const MemberOrganizer = preload("../addons/simple_gdscript_formatter/transform/member_organizer.gd")
 
 var failures := 0
 var checks := 0
@@ -12,6 +13,7 @@ var checks := 0
 func _init() -> void:
 	_test_lexer()
 	_test_declarations()
+	_test_organizer()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -70,3 +72,13 @@ func _test_declarations() -> void:
 	var inner = tree.root.children[1]
 	check(inner.kind == Cst.Kind.CLASS_DECL, "nested class kind")
 	check(inner.attributes.body.children.size() == 2, "nested class members")
+
+
+func _test_organizer() -> void:
+	var source := "var z := 1\n## docs\n@export\nvar speed := 2\nsignal changed\n# barrier\n\nvar b := 2\nconst A := 1\n"
+	var result: String = MemberOrganizer.new().organize(source)
+	check(result.begins_with("signal changed\n## docs\n@export\nvar speed := 2\nvar z := 1\n"), "organizer moves annotations and docs as a unit")
+	check(result.ends_with("# barrier\n\nconst A := 1\nvar b := 2\n"), "standalone comment is an ordering barrier")
+	check(MemberOrganizer.new().organize(result) == result, "organizer is stable")
+	result = MemberOrganizer.new().organize("class Inner:\n    var z := [\n        1, 2\n    ]\n    signal changed\n")
+	check(result.begins_with("class Inner:\n    signal changed\n    var z"), "organizer handles nested classes and multiline declarations")
