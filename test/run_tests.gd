@@ -7,6 +7,7 @@ const Cst = preload("../addons/simple_gdscript_formatter/syntax/cst.gd")
 const MemberOrganizer = preload("../addons/simple_gdscript_formatter/transform/member_organizer.gd")
 const Doc = preload("../addons/simple_gdscript_formatter/format/doc.gd")
 const Printer = preload("../addons/simple_gdscript_formatter/format/printer.gd")
+const CstFormatter = preload("../addons/simple_gdscript_formatter/format/formatter.gd")
 
 var failures := 0
 var checks := 0
@@ -19,6 +20,9 @@ func _init() -> void:
 	_test_statements()
 	_test_expressions()
 	_test_printer()
+	_test_formatter()
+	_test_corpus()
+	_test_semantics()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -142,3 +146,110 @@ func _test_printer() -> void:
 	check(printer.print_doc(document, "  ", 10) == "foo(\n  alpha,\n  beta\n)", "group expands and indents")
 	check(printer.print_doc(document) == printer.print_doc(document), "printer is deterministic")
 	check(printer.print_doc(Doc.indent(Doc.concat([Doc.text("a"), Doc.line(), Doc.line(), Doc.text("b")])), "  ") == "  a\n\n  b", "blank lines have no indentation")
+
+
+func format_source(source: String, indent_text := "\t", width := 100) -> String:
+	return Printer.new().print_doc(CstFormatter.new().format_script(parse(source)), indent_text, width)
+
+
+func significant_tokens(source: String) -> Array:
+	var result: Array = []
+	var tree = parse(source)
+	var ignored := {}
+	_optional_enum_commas(tree.root, tree.tokens, ignored)
+	for i in tree.tokens.size():
+		var token = tree.tokens[i]
+		if token.kind not in [Token.Kind.SPACE, Token.Kind.TAB, Token.Kind.NEWLINE] and not ignored.has(i):
+			result.append(token.text)
+	return result
+
+
+func _optional_enum_commas(node, stream: Array, ignored: Dictionary) -> void:
+	if node.kind == Cst.Kind.ENUM_DECL:
+		for child in node.children:
+			if child.attributes.has("close"):
+				var last: int = child.attributes.close - 1
+				while last > child.first_token and stream[last].is_trivia():
+					last -= 1
+				if stream[last].kind == Token.Kind.COMMA:
+					ignored[last] = true
+	for child in node.children:
+		_optional_enum_commas(child, stream, ignored)
+
+
+func _test_formatter() -> void:
+	var samples: Array[String] = [
+		FileAccess.get_file_as_string("res://test/test.gd"),
+		"@export var a=1\n@export\nvar b=2\nvar p:=1.0## a comment with a '\nvar c:=&\"ab\"\nvar n:=^\"..\"\n",
+		"func run():\n            if a:\n                while b:\n                    pass\n",
+		"var a := '''\n  # untouched\n\t'''\nvar b := \"\"\"a\r\nb\"\"\"\n",
+		"var a=$Node/Child\nvar b=1-%Unique.num\nvar c=1%3+1\nvar d=- 2 ** 2\n",
+		"var x = [1 ,2,\n3]\nvar y = {\"key\": [1,2], \"other\": 2}\n",
+		"enum State {A,B,C}\nfunc run():\n    match 1:\n        1,2: pass\n        _: return\n",
+		"sig.connect(func():\n        sig.connect(func():\n            if true:\n                pass\n        )\n)\n",
+		"func run():\n    var a = 1 + \\\n        2\n    if true: pass; print(a)\n",
+		"var a=1;\nvar b=2; var c=3;\nfunc f(): pass;\n",
+		"var pattern = r\"\\d+\"\nvar x = [1, # comment\n2, # last\n]\n",
+		"@export # inline\n# between annotation and declaration\nvar value=1\n",
+	]
+	for i in samples.size():
+		var source := samples[i]
+		var result := format_source(source)
+		var twice := format_source(result)
+		check(result == twice, "formatter idempotence sample %d" % i)
+		if result != twice:
+			FileAccess.open("res://test/first.tmp", FileAccess.WRITE).store_string(result)
+			FileAccess.open("res://test/second.tmp", FileAccess.WRITE).store_string(twice)
+		check(significant_tokens(source) == significant_tokens(result), "tokens and declaration order preserved sample %d" % i)
+		check(parse(result).errors.is_empty(), "formatted source parses sample %d" % i)
+	check(format_source("var a=1+2*3\n") == "var a = 1 + 2 * 3\n", "operator spacing")
+	check(format_source("func run():\n        pass\n", "  ") == "func run():\n  pass\n", "indentation follows CST and preference")
+	check(format_source("var n=$Node/Child\n") == "var n = $Node/Child\n", "node path is not divided")
+	check(format_source("var n=1-%Unique.num\n") == "var n = 1 - %Unique.num\n", "unique-node prefix versus binary modulo")
+	check(format_source("var d={key=1}\n") == "var d = { key = 1 }\n", "dictionary style")
+
+
+func _test_corpus() -> void:
+	var paths: Array[String] = ["res://test/test.gd", "res://test/fixtures/semantics.gd"]
+	_collect_scripts("res://addons/simple_gdscript_formatter", paths)
+	for path in paths:
+		var source := FileAccess.get_file_as_string(path)
+		var result := format_source(source)
+		check(format_source(result) == result, "corpus idempotence: " + path)
+		if format_source(result) != result:
+			var debug_name := path.trim_prefix("res://").replace("/", "_")
+			FileAccess.open("res://test/" + debug_name + ".first.tmp", FileAccess.WRITE).store_string(result)
+			FileAccess.open("res://test/" + debug_name + ".second.tmp", FileAccess.WRITE).store_string(format_source(result))
+		check(significant_tokens(source) == significant_tokens(result), "corpus tokens: " + path)
+		var script := GDScript.new()
+		script.resource_path = path + ".formatted.gd"
+		script.source_code = result
+		check(script.reload() == OK, "Godot compiles formatted source: " + path)
+		if path == "res://test/test.gd" and "--update-golden" in OS.get_cmdline_user_args():
+			FileAccess.open("res://test/result.gd", FileAccess.WRITE).store_string(result)
+	check(format_source(FileAccess.get_file_as_string("res://test/test.gd")) == FileAccess.get_file_as_string("res://test/result.gd"), "golden fixture")
+
+
+func _collect_scripts(directory: String, paths: Array[String]) -> void:
+	for file in DirAccess.get_files_at(directory):
+		if file.ends_with(".gd"):
+			paths.append(directory.path_join(file))
+	for child in DirAccess.get_directories_at(directory):
+		_collect_scripts(directory.path_join(child), paths)
+
+
+func _test_semantics() -> void:
+	var source := FileAccess.get_file_as_string("res://test/fixtures/semantics.gd")
+	var original := GDScript.new()
+	original.source_code = source
+	check(original.reload() == OK, "semantic fixture compiles before formatting")
+	var expected: Array = original.new().evaluate()
+	for indentation in ["\t", "  ", "    "]:
+		var formatted := GDScript.new()
+		formatted.source_code = format_source(source, indentation, 60)
+		check(formatted.reload() == OK, "semantic fixture compiles after formatting")
+		check(formatted.new().evaluate() == expected, "runtime behavior and initializer order are unchanged")
+		check(format_source(formatted.source_code, indentation, 60) == formatted.source_code, "narrow layout is idempotent")
+		if format_source(formatted.source_code, indentation, 60) != formatted.source_code:
+			FileAccess.open("res://test/narrow.first.tmp", FileAccess.WRITE).store_string(formatted.source_code)
+			FileAccess.open("res://test/narrow.second.tmp", FileAccess.WRITE).store_string(format_source(formatted.source_code, indentation, 60))

@@ -1,79 +1,26 @@
 @tool
-@icon("/")
 @static_unload
+@icon("/")
 extends Node
 
-signal sig
 
-# Enum
-enum State {
-	IDLE,
-	WALKING,
-	RUNNING,
-}
-# Enum
-enum State2 { IDLE }
-enum SIDE {
-	TOP,
-	LEFT,
-	BOTTOM,
-	RIGHT,
-	ANY,
-}
-
-const _private_const := 2
-
-# Export
-@export var example_var := 1
-
-#export range
-@export_range(-90.0, 0.0, 0.1, "range")
-var _range: float = -PI / 2
-
-# Multiline string
-var weird_multiline_str := """ 
-abcde \"\"\"""more
-text
-"""
-
-var weird_colon := 42
-
-var node_path := ^".."
-
-# one line
-var _my_dictionary = { key = "value" }
-
-@onready var r1 = 2
-
-@onready var _r2 = 1
-
-
-# Static
-static func do_static_thing() -> void:
-	pass
-
-
-func _init() -> void:
-	pass
-
-
+@warning_ignore("assert_always_false")
 @abstract class AWeirdlyFormattedClass:
-
 	var a = 1
 
 
 	func block():
-		while(
-				true
-				and false
+		while (
+			true
+			and false
 		):
 			pass
 
 
 	func block2():
-		while(
-				true
-				and false
+		while (
+			true
+			and false
 		):
 			pass
 
@@ -81,18 +28,27 @@ func _init() -> void:
 	@abstract func abs() -> void
 
 
+class WeirdlyFormattedClass extends AWeirdlyFormattedClass:
+	func abs() -> void:
+		pass
+
+
+# one line
+var _my_dictionary = { key = "value" }
+
+
 # Test ops: ** << >> == != >= <= && || += -= *= /= %= **= &= ^= |= ~= <<= >>= := -> & | ^ - + / * > < %
 func run_all_ops(val1: int, val2: float = 1.0):
 	var a = 10
 	var b = 5
 	var result = 0
-#top level comment in func
+	#top level comment in func
 	var arr = [1, 2, 3]
 	if arr[0] != arr[3] and a > -1:
 		a = (a + b) / (b - a)
 		a = (a + b) / (b - a)
 		a = -90
-	if true and false:
+	if (true and false):
 		pass
 	# Arithmetic
 	result = a + b
@@ -151,21 +107,56 @@ func run_all_ops(val1: int, val2: float = 1.0):
 	sig.emit()
 
 
+signal sig
+
+
+func _init() -> void:
+	pass
+
+
+#export range
+@export_range(-90.0, 0.0, 0.1, "range")
+var _range: float = -PI / 2
+# Multiline string
+var weird_multiline_str := """ 
+abcde \"\"\"""more
+text
+"""
+
+# Export
+@export var example_var := 1
+
+
+# Static
+static func do_static_thing() -> void:
+	pass
+
+
 # Return
 func get_it() -> int:
 	return 123
 
 
+# Enum
+enum State {
+	IDLE,
+	WALKING,
+	RUNNING,
+}
+# Enum
+enum State2 { IDLE }
 #func disable():
-	#pass
+#pass
+
+
 # Match, loops, await, nested func
 func test_misc():
 	var val := 3
 	# if-nesting
 	if (
-			1 > 0
-			and 2 == 2
-			and (3 != 4 and 5 < 6)
+		1 > 0 and
+		2 == 2 and
+		(3 != 4 and 5 < 6)
 	):
 		pass
 	match val:
@@ -187,12 +178,14 @@ func test_misc():
 
 	await get_tree().create_timer(0.1).timeout
 
-	sig.connect(func() -> void:
-			sig.connect(func() -> void:
+	sig.connect(
+		func() -> void:
+			sig.connect(
+				func() -> void:
 					if (
-							1 > 0
-							and 2 == 2
-							and (3 != 4 and 5 < 6)
+						1 > 0 and
+						2 == 2 and
+						(3 != 4 and 5 < 6)
 					):
 						pass
 			)
@@ -200,9 +193,9 @@ func test_misc():
 				print("inline")
 			# if-nesting
 			if (
-					1 > 0
-					and 2 == 2
-					and (3 != 4 and 5 < 6)
+				1 > 0 and
+				2 == 2 and
+				(3 != 4 and 5 < 6)
 			):
 				pass
 			match val:
@@ -224,19 +217,33 @@ func test_misc():
 
 	# if-nesting
 	if (
-			1 > 0
-			and 2 == 2
-			and (3 != 4 and 5 < 6)
+		1 > 0 and
+		2 == 2 and
+		(3 != 4 and 5 < 6)
 	):
 		pass
 
 
 func block():
-	while(
-			true
-			and false
+	while (
+		true
+		and false
 	):
 		pass
+
+
+var weird_colon := 42
+enum SIDE {
+	TOP,
+	LEFT,
+	BOTTOM,
+	RIGHT,
+	ANY,
+}
+@onready var _r2 = 1
+@onready var r1 = 2
+
+const _private_const := 2
 
 
 @rpc("any_peer", "reliable")
@@ -244,9 +251,4 @@ func request_lobby_details(from_peer_id: int):
 	pass
 
 
-@warning_ignore("assert_always_false")
-class WeirdlyFormattedClass extends AWeirdlyFormattedClass:
-
-
-	func abs() -> void:
-		pass
+var node_path := ^".."

@@ -34,6 +34,8 @@ func parse(stream: Array):
 	tree.root = _parse_scope(-1, N.SCRIPT)
 	tree.root.first_token = 0
 	tree.root.last_token = tokens.size()
+	if cursor < tokens.size():
+		tree.errors.append("Unexpected closing delimiter at token %d" % cursor)
 	ExpressionParser.new().annotate(tree)
 	return tree
 
@@ -80,9 +82,15 @@ func _parse_item(forced_kind := -1, stop_at_comma := false):
 		_skip_horizontal()
 		if _kind() == K.LEFT_PAREN:
 			annotation.children.append(_parse_delimited())
+		_skip_horizontal()
+		if _kind() == K.COMMENT:
+			cursor += 1
 		annotation.last_token = cursor
 		annotations.append(annotation)
 		_skip_whitespace()
+		while _kind() == K.COMMENT:
+			cursor += 1
+			_skip_whitespace()
 	var keyword := cursor
 	var static_member := _kind() == K.STATIC
 	if static_member:

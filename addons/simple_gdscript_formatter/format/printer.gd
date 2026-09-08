@@ -65,7 +65,7 @@ func _fits(remaining: int, stack: Array, tab_size: int) -> bool:
 					return true
 				remaining -= _width(doc.value, tab_size)
 			K.GROUP:
-				if doc.force_break:
+				if doc.force_break and flat:
 					return false
 				stack.append([command[0], flat, doc.children[0]])
 			K.INDENT:

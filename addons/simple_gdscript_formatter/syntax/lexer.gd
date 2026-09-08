@@ -63,9 +63,9 @@ func _scan_token() -> void:
 		kind = K.COMMENT
 		while offset < source.length() and _peek() not in ["\r", "\n"]:
 			_advance()
-	elif c in ["'", '"'] or (c in ["&", "^"] and _peek(1) in ["'", '"']):
+	elif c in ["'", '"'] or (c in ["&", "^", "r"] and _peek(1) in ["'", '"']):
 		kind = K.STRING
-		if c in ["&", "^"]:
+		if c in ["&", "^", "r"]:
 			_advance()
 		_scan_string()
 	elif c == "@":
