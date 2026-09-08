@@ -101,6 +101,8 @@ func _scan_token() -> void:
 	token.end_line = line
 	token.end_column = column
 	tokens.append(token)
+	if kind == K.UNKNOWN:
+		errors.append("Unknown token at %d:%d" % [start_line + 1, start_column + 1])
 
 
 func _scan_string() -> void:

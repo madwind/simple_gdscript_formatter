@@ -8,6 +8,7 @@ const MemberOrganizer = preload("../addons/simple_gdscript_formatter/transform/m
 const Doc = preload("../addons/simple_gdscript_formatter/format/doc.gd")
 const Printer = preload("../addons/simple_gdscript_formatter/format/printer.gd")
 const CstFormatter = preload("../addons/simple_gdscript_formatter/format/formatter.gd")
+const Formatter = preload("../addons/simple_gdscript_formatter/formatter.gd")
 
 var failures := 0
 var checks := 0
@@ -23,6 +24,7 @@ func _init() -> void:
 	_test_formatter()
 	_test_corpus()
 	_test_semantics()
+	_test_entry_point()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -253,3 +255,20 @@ func _test_semantics() -> void:
 		if format_source(formatted.source_code, indentation, 60) != formatted.source_code:
 			FileAccess.open("res://test/narrow.first.tmp", FileAccess.WRITE).store_string(formatted.source_code)
 			FileAccess.open("res://test/narrow.second.tmp", FileAccess.WRITE).store_string(format_source(formatted.source_code, indentation, 60))
+
+
+func _test_entry_point() -> void:
+	var formatter = Formatter.new()
+	var source := "var second=2\nvar first=1\nfunc run():\n    pass\n"
+	check(formatter.format_source(source) == format_source(source), "public API uses CST pipeline")
+	var editor := CodeEdit.new()
+	editor.text = source
+	editor.indent_use_spaces = true
+	editor.indent_size = 2
+	check(formatter.format(editor) == format_source(source, "  "), "CodeEdit space indentation")
+	editor.indent_use_spaces = false
+	check(formatter.format(editor) == format_source(source, "\t"), "CodeEdit tab indentation")
+	editor.free()
+	for incomplete in ["var a = [1,\n", "var a=\"unterminated", "var a = (1]\n", ")\nvar a=1\n"]:
+		check(formatter.format_source(incomplete) == incomplete, "incomplete input is preserved")
+	check(formatter.format_source(" \n\t") == "", "empty input")
