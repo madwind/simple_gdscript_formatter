@@ -5,6 +5,8 @@ const Token = preload("../addons/simple_gdscript_formatter/syntax/token.gd")
 const Parser = preload("../addons/simple_gdscript_formatter/syntax/parser.gd")
 const Cst = preload("../addons/simple_gdscript_formatter/syntax/cst.gd")
 const MemberOrganizer = preload("../addons/simple_gdscript_formatter/transform/member_organizer.gd")
+const Doc = preload("../addons/simple_gdscript_formatter/format/doc.gd")
+const Printer = preload("../addons/simple_gdscript_formatter/format/printer.gd")
 
 var failures := 0
 var checks := 0
@@ -16,6 +18,7 @@ func _init() -> void:
 	_test_organizer()
 	_test_statements()
 	_test_expressions()
+	_test_printer()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
 
@@ -126,3 +129,16 @@ func _test_expressions() -> void:
 	check(node.kind == Cst.Kind.LAMBDA_EXPR and node.attributes.body.children.size() == 2, "lambda has a statement block")
 	var nested = node.attributes.body.children[0].attributes.expressions[0].children[1].children[0]
 	check(nested.kind == Cst.Kind.LAMBDA_EXPR and nested.attributes.body.children[0].kind == Cst.Kind.IF_STMT, "nested lambda statements")
+
+
+func _test_printer() -> void:
+	var document = Doc.group(Doc.concat([
+		Doc.text("foo("),
+		Doc.indent(Doc.concat([Doc.soft_line(""), Doc.text("alpha,"), Doc.soft_line(), Doc.text("beta")])),
+		Doc.soft_line(""), Doc.text(")"),
+	]))
+	var printer = Printer.new()
+	check(printer.print_doc(document) == "foo(alpha, beta)", "group flattens")
+	check(printer.print_doc(document, "  ", 10) == "foo(\n  alpha,\n  beta\n)", "group expands and indents")
+	check(printer.print_doc(document) == printer.print_doc(document), "printer is deterministic")
+	check(printer.print_doc(Doc.indent(Doc.concat([Doc.text("a"), Doc.line(), Doc.line(), Doc.text("b")])), "  ") == "  a\n\n  b", "blank lines have no indentation")
