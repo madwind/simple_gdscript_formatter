@@ -213,6 +213,8 @@ func _test_formatter() -> void:
 	check(format_source("var n=$Node/Child\n") == "var n = $Node/Child\n", "node path is not divided")
 	check(format_source("var n=1-%Unique.num\n") == "var n = 1 - %Unique.num\n", "unique-node prefix versus binary modulo")
 	check(format_source("var d={key=1}\n") == "var d = { key = 1 }\n", "dictionary style")
+	var lambdas := "var values = [\n\tfunc():\n\t\treturn 1,\n\tfunc():\n\t\treturn 2,\n]\n"
+	check(format_source(lambdas) == lambdas, "multiline lambda arguments retain separate lines")
 
 
 func _test_corpus() -> void:

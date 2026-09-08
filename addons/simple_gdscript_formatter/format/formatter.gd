@@ -191,6 +191,10 @@ func _format_sequence(first: int, last: int, structures: Array, delimited := fal
 				after_comma = true
 		parts.append(Doc.indent(content, continuation_indent) if continuation_indent > 0 else content)
 		previous = _last_content(i, end)
+		# Lambda suites can own the newline before the next argument. Keep that
+		# break when the entire suite is emitted as a single structural child.
+		if end > previous + 1 and tokens[end - 1].end_line > tokens[previous].end_line:
+			pending_newline = true
 		if previous == add_comma:
 			parts.append(Doc.text(","))
 		i = end
