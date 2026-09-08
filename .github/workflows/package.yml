@@ -1,4 +1,4 @@
-name: Package Asset
+name: Release Asset
 
 on:
   workflow_dispatch:
@@ -7,10 +7,10 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  package:
+  release:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,17 +22,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           version="$(sed -n 's/^version="\([^"]*\)"/\1/p' addons/simple_gdscript_formatter/plugin.cfg)"
           if [ -z "$version" ]; then
             echo "Unable to read version from plugin.cfg" >&2
             exit 1
           fi
+
+          tag="v${version}"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match plugin version $version" >&2
+            exit 1
+          fi
+
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Package
         shell: bash
         run: |
           set -euo pipefail
+
           version="${{ steps.version.outputs.version }}"
           package_dir="dist/package"
           archive="dist/simple_gdscript_formatter-${version}.zip"
@@ -46,9 +56,21 @@ jobs:
             zip -r "../../$archive" addons LICENSE README.md
           )
 
-      - name: Upload package
-        uses: actions/upload-artifact@v4
-        with:
-          name: simple_gdscript_formatter-${{ steps.version.outputs.version }}
-          path: dist/simple_gdscript_formatter-${{ steps.version.outputs.version }}.zip
-          if-no-files-found: error
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${{ steps.version.outputs.tag }}"
+          archive="dist/simple_gdscript_formatter-${{ steps.version.outputs.version }}.zip"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$archive" --clobber
+          else
+            gh release create "$tag" "$archive" \
+              --title "$tag" \
+              --generate-notes \
+              --target "$GITHUB_SHA"
+          fi
