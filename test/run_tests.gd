@@ -24,6 +24,8 @@ func _init() -> void:
 	_test_formatter()
 	_test_corpus()
 	_test_semantics()
+	_test_main_fixture()
+	_test_expected_styles()
 	_test_entry_point()
 	print("Formatter tests: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures else 0)
@@ -73,8 +75,9 @@ func _test_declarations() -> void:
 	var names: Array = []
 	for member in tree.root.children:
 		names.append(tree.member_name(member))
-	check(names.has("State2") and names.has("test_misc"), "multiline enum boundary")
-	check(names.has("node_path") and names.has("run_all_ops"), "top-level members after multiline bodies")
+	check(names.has("SingleState") and names.has("case_arithmetic"), "multiline enum boundary")
+	check(names.has("case_node_paths") and names.has("evaluate"), "top-level members after multiline bodies")
+	check(names.find("_second") < names.find("changed") and names.find("changed") < names.find("_first"), "fixture preserves deliberately interleaved declarations")
 	tree = parse("## docs\n@export_range(\n  0, 1\n)\nvar speed: float = 1\nclass Inner:\n    var value := foo(\n        1, 2\n    )\n    func run():\n        pass\nvar after := 2\n")
 	check(tree.root.children.size() == 3, "declarations separated")
 	var variable = tree.root.children[0]
@@ -278,3 +281,63 @@ func _test_entry_point() -> void:
 	for incomplete in ["var a = [1,\n", "var a=\"unterminated", "var a = (1]\n", ")\nvar a=1\n"]:
 		check(formatter.format_source(incomplete) == incomplete, "incomplete input is preserved")
 	check(formatter.format_source(" \n\t") == "", "empty input")
+
+
+func _test_main_fixture() -> void:
+	var source := FileAccess.get_file_as_string("res://test/test.gd")
+	var original := GDScript.new()
+	original.source_code = source
+	var error := original.reload()
+	check(error == OK, "main fixture compiles before formatting")
+	if error != OK:
+		return
+	var expected := _evaluate_main_fixture(original)
+	check(expected["declaration_order"] == [2, 1], "main fixture exercises initializer order")
+	check(expected["property"] == 10 and expected["signals"] == [4], "main fixture executes property and signal cases")
+	check(expected["nodes"] == [&"UniqueLeaf", &"UniqueLeaf", &"UniqueLeaf", 10, 1], "node syntax uses a real local hierarchy")
+	for indentation in ["\t", "  ", "    "]:
+		var formatted := GDScript.new()
+		formatted.source_code = format_source(source, indentation)
+		error = formatted.reload()
+		check(error == OK, "main fixture compiles with requested indentation")
+		if error != OK:
+			continue
+		check(_evaluate_main_fixture(formatted) == expected, "main fixture behavior survives formatting")
+		check(format_source(formatted.source_code, indentation) == formatted.source_code, "main fixture layout is idempotent")
+
+
+func _evaluate_main_fixture(script: GDScript) -> Dictionary:
+	var instance = script.new()
+	var result: Dictionary = instance.evaluate()
+	instance.free()
+	return result
+
+
+func _test_expected_styles() -> void:
+	var source := FileAccess.get_file_as_string("res://test/test.gd")
+	var tree = parse(source)
+	var lines := source.split("\n")
+	var previous_marker := -1
+	var blocks := 0
+	for member in tree.root.children:
+		if member.kind == Cst.Kind.COMMENT:
+			continue
+		blocks += 1
+		var first: int = member.first_token
+		while first < member.last_token and tree.tokens[first].is_trivia():
+			first += 1
+		var marker: int = tree.tokens[first].start_line - 1
+		while marker >= 0 and lines[marker] != "# 预期格式：":
+			marker -= 1
+		check(marker > previous_marker, "each fixture block has its own expected style")
+		if marker <= previous_marker:
+			continue
+		previous_marker = marker
+		var expected := PackedStringArray()
+		var line := marker + 1
+		while line < lines.size() and (lines[line] == "#" or lines[line].begins_with("# ")):
+			expected.append("" if lines[line] == "#" else lines[line].trim_prefix("# "))
+			line += 1
+		var code: String = tree.text(first, member.last_token)
+		check(Formatter.new().format_source(code).trim_suffix("\n") == "\n".join(expected), "expected style matches block at line %d" % (marker + 1))
+	check(blocks == lines.count("# 预期格式："), "expected styles have no orphan blocks")

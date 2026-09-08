@@ -72,7 +72,13 @@ It formats every addon script and compiles the results with Godot. Runtime tests
 compare original and formatted initializer order, lambdas, properties, match
 branches, collections, and operator behavior with several indentation settings.
 
-`test/test.gd` is the input fixture and `test/result.gd` is its expected output.
+`test/test.gd` groups the input cases into 12 syntax sections. Each independent
+code block has a commented expected layout above the deliberately uneven input;
+the suite verifies these examples as well as `test/result.gd`, the whole-file
+expected output. Its `evaluate()` method runs deterministic cases, including a
+locally constructed node hierarchy. The signal-await coroutine is checked by
+compilation without waiting for a signal.
+
 To deliberately regenerate that expected output after a formatting change:
 
 ```sh
