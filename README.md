@@ -4,7 +4,7 @@
 *no Python dependencies*  
 Formats GDScript using a lossless lexer, concrete syntax tree (CST), and a
 structured layout printer. Implemented entirely in GDScript, with no runtime
-dependencies. Tested with Godot 4.6.
+dependencies.
 
 Godot shader files (`.gdshader`) are also supported by a separate formatter.
 
