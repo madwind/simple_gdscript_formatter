@@ -1,0 +1,51 @@
+name: One-time Actions storage cleanup
+
+on:
+  push:
+    paths:
+      - '.github/workflows/cleanup-actions-storage-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: one-time-actions-storage-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Delete all historical artifacts and caches
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          gh api --paginate "repos/$repo/actions/artifacts?per_page=100" --jq '.artifacts[] | [.id, .size_in_bytes] | @tsv' > "$RUNNER_TEMP/artifacts.tsv"
+          gh api --paginate "repos/$repo/actions/caches?per_page=100" --jq '.actions_caches[] | [.id, .size_in_bytes] | @tsv' > "$RUNNER_TEMP/caches.tsv"
+          artifacts=$(wc -l < "$RUNNER_TEMP/artifacts.tsv")
+          caches=$(wc -l < "$RUNNER_TEMP/caches.tsv")
+          artifact_bytes=$(awk -F '\t' '{sum+=$2} END {printf "%.0f", sum}' "$RUNNER_TEMP/artifacts.tsv")
+          cache_bytes=$(awk -F '\t' '{sum+=$2} END {printf "%.0f", sum}' "$RUNNER_TEMP/caches.tsv")
+          echo "Deleting $artifacts artifacts ($artifact_bytes bytes) and $caches caches ($cache_bytes bytes)"
+          while IFS=$'\t' read -r id bytes; do
+            if [[ -n "$id" ]]; then gh api -X DELETE "repos/$repo/actions/artifacts/$id" >/dev/null; fi
+          done < "$RUNNER_TEMP/artifacts.tsv"
+          while IFS=$'\t' read -r id bytes; do
+            if [[ -n "$id" ]]; then gh api -X DELETE "repos/$repo/actions/caches/$id" >/dev/null; fi
+          done < "$RUNNER_TEMP/caches.tsv"
+          artifact_left=$(gh api "repos/$repo/actions/artifacts?per_page=1" --jq '.total_count')
+          cache_left=$(gh api "repos/$repo/actions/caches?per_page=1" --jq '.total_count')
+          {
+            echo "### Actions storage cleanup"
+            echo "- Removed artifacts: $artifacts ($artifact_bytes bytes)"
+            echo "- Removed caches: $caches ($cache_bytes bytes)"
+            echo "- Remaining artifacts: $artifact_left"
+            echo "- Remaining caches: $cache_left"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [[ "$artifact_left" == 0 && "$cache_left" == 0 ]]
